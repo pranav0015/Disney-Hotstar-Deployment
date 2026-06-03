@@ -83,7 +83,7 @@ pipeline{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'ACCESS_KEY'), string(credentialsId: 'iam-secret-key', variable: 'SECRET_KEY')]) {
                         sh """
                             aws configure set aws_access_key_id $ACCESS_KEY
-                            aws configure aws_secret_access_key $SECRET_KEY
+                            aws configure set aws_secret_access_key $SECRET_KEY
                             aws ecr describe-repositories --repository-name ${params.ECR_REPO_NAME} --region ap-south-1 ||
                             aws ecr create-repository --repository-name ${params.ECR_REPO_NAME} --region ap-south-1
                         """
