@@ -50,7 +50,7 @@ pipeline{
 
             stage("SonarQube Scanning"){
                 steps{
-                    withSonarQubeEnv(credentialsId: 'sonar-server') {
+                    withSonarQubeEnv('sonar-server') {
                         sh '''
                         $SONAR_HOME/bin/sonar-scanner \
                         -Dsonar.projectName=DisneyHotstar \
