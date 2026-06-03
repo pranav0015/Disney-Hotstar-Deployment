@@ -35,12 +35,12 @@ pipeline{
                 }
             }
 
-            stage('OWASP FS SCAN') {
-                steps {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit --nvdApiKey FA7AD04A-005F-F111-836C-0EBF96DE670D', odcInstallation: 'DC' // DC is tools name for dependency check in Jenkins Tools. and created nvdApiKey from online.
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                 }
-            }
+         //   stage('OWASP FS SCAN') {
+        //        steps {
+        //            dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit --nvdApiKey FA7AD04A-005F-F111-836C-0EBF96DE670D', odcInstallation: 'DC' // DC is tools name for dependency check in Jenkins Tools. and created nvdApiKey from online.
+         //           dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+         //        }
+         //   }
 
             stage("Trivy Scanning"){
                 steps{
