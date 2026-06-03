@@ -37,7 +37,7 @@ pipeline{
 
             stage('OWASP FS SCAN') {
                 steps {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit --nvdApiKey FA7AD04A-005F-F111-836C-0EBF96DE670D', odcInstallation: 'DC'
+                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit --nvdApiKey FA7AD04A-005F-F111-836C-0EBF96DE670D', odcInstallation: 'DC' // DC is tools name for dependency check in Jenkins Tools. and created nvdApiKey from online.
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                  }
             }
@@ -81,12 +81,12 @@ pipeline{
             stage("Create ECR Repo"){
                 steps{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
-                        sh '''
+                        sh """
                             aws configure set aws_access_key_id $access-key
                             aws configure aws_secret_access_key $secret-key
                             aws ecr describe-repositories --repository-name ${params.ECR_REPO_NAME} --region ap-south-1 ||
                             aws ecr create-repository --repository-name ${params.ECR_REPO_NAME} --region ap-south-1
-                        '''
+                        """
                     }
                     
                 }
@@ -95,21 +95,21 @@ pipeline{
             stage("Logging to ECR and tagging the image"){
                 steps{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
-                        sh '''
+                        sh """
                             aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com
                             docker tag ${params.ECR_REPO_NAME}:latest ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:$BUILD_NUMBER
                             docker tag ${params.ECR_REPO_NAME}:latest ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:latest
-                        '''
+                        """
                     }
                 }
             }
             stage("Push Docker Image to ECR"){
                 steps{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
-                        sh '''
+                        sh """
                             docker push ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:$BUILD_NUMBER
                             docker push ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:latest
-                        '''
+                        """
                     }
 
                 }
@@ -117,11 +117,11 @@ pipeline{
 
             stage("Cleanup Docker Images from Jenkins Server"){
                 steps{
-                    sh '''
+                    sh """
                         docker rmi ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:$BUILD_NUMBER
                         docker rmi ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:latest
                         docker images
-                    '''
+                    """
                 }
             }
 
