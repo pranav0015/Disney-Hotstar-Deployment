@@ -1,3 +1,6 @@
+
+// Prerequisite - Ensure Terraform need to be installed first on Jenkins server
+
 pipeline {
     agent any
 
