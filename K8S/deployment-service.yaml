@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name:  disney-hotstar-container
-        image:  752948842505.dkr.ecr.ap-south-1.amazonaws.com/disney-hostart-ecr-repo:18
+        image:  752948842505.dkr.ecr.ap-south-1.amazonaws.com/disney-hostart-ecr-repo:20
         imagePullPolicy: Always
         livenessProbe:
           tcpSocket:
