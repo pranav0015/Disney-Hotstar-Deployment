@@ -18,7 +18,7 @@ pipeline{
                 sh """
                  # replace the docker image tag with the latest build number and updated the deployment file
 
-                 sed -i "s|disney-hostart-ecr-repo:*|disney-hostart-ecr-repo:${params.Image_Tag}|g" "./K8S/deployment-service.yaml"
+                 sed -i "s|disney-hostart-ecr-repo:.*|disney-hostart-ecr-repo:${params.Image_Tag}|g" "./K8S/deployment-service.yaml"
 
                  cat "./K8S/deployment-service.yaml"
 
