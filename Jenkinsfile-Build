@@ -30,6 +30,9 @@ pipeline{
             }
 
             stage("NPM Install"){
+                script{
+                    env.FAILED_STAGE = "NPM Install"
+                }
                 steps{
                     sh "npm install"
                 }
@@ -43,12 +46,18 @@ pipeline{
          //   }
 
             stage("Trivy Scanning"){
+                script{
+                    env.FAILED_STAGE = "Trivy Scanning"
+                }
                 steps{
                     sh "trivy fs --format table -o trivy-fs-report.html ."
                 }
             }
 
             stage("SonarQube Scanning"){
+                script{
+                    env.FAILED_STAGE = "SonarQube Scanning"
+                }
                 steps{
                     withSonarQubeEnv('sonar-server') {
                         sh '''
@@ -61,24 +70,36 @@ pipeline{
             }
 
             stage("SonarQube Quality Gate"){
+                script{
+                    env.FAILED_STAGE = "SonarQube Quality Gate"
+                }
                 steps{
                     waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
                 }
             }
 
             stage("Build Docker Image"){
+                script{
+                    env.FAILED_STAGE = "Build Docker Image"
+                }
                 steps{
                     sh "docker build -t ${params.ECR_REPO_NAME} ."
                 }
             }
 
             stage("Trivy Docker Image Scan"){
+                script{
+                    env.FAILED_STAGE = "Trivy Docker Image Scan"
+                }
                 steps{
                     sh "trivy image --format table -o trivy-docker-image-scan-report.html ${params.ECR_REPO_NAME}"
                 }
             }
 
             stage("Create ECR Repo"){
+                script{
+                    env.FAILED_STAGE = "Create ECR Repo"
+                }
                 steps{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'ACCESS_KEY'), string(credentialsId: 'iam-secret-key', variable: 'SECRET_KEY')]) {
                         sh """
@@ -93,6 +114,9 @@ pipeline{
             }
 
             stage("Logging to ECR and tagging the image"){
+                script{
+                    env.FAILED_STAGE = "Logging to ECR and tagging the image"
+                }
                 steps{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
                         sh """
@@ -104,6 +128,9 @@ pipeline{
                 }
             }
             stage("Push Docker Image to ECR"){
+                script{
+                    env.FAILED_STAGE = "Push Docker Image to ECR"
+                }
                 steps{
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
                         sh """
@@ -125,5 +152,175 @@ pipeline{
                 }
             }
 
+            stage('Trigger CD Pipeline'){
+                steps{
+                    script{
+                        env.FAILED_STAGE = "Trigger CD Pipeline"
+                    }
+                    build job: 'Deploy-pipeline',
+                    wait: false,
+                    parameters:[
+                    string(name: 'Image_Tag', value: "${BUILD_NUMBER}")
+                ]
+               }
+            }
         }
+
+    post {
+
+    success {
+        script {
+
+            def body = """
+            <html>
+            <body>
+
+            <div style="border: 4px solid green; padding: 15px; border-radius: 10px;">
+
+            <h2>CI Pipeline Success - Build #${BUILD_NUMBER}</h2>
+
+            <div style="background-color: green; padding: 10px; border-radius: 5px;">
+                <h3 style="color: white;">
+                    Build Status: SUCCESS
+                </h3>
+            </div>
+
+            <br>
+
+            <table border="1" cellpadding="8" cellspacing="0" width="100%">
+
+                <tr>
+                    <th align="left">Pipeline Name</th>
+                    <td>${JOB_NAME}</td>
+                </tr>
+
+                <tr>
+                    <th align="left">Build Number</th>
+                    <td>${BUILD_NUMBER}</td>
+                </tr>
+
+                <tr>
+                    <th align="left">Docker Repository</th>
+                    <td>${params.ECR_REPO_NAME}</td>
+                </tr>
+
+                <tr>
+                    <th align="left">Build URL</th>
+                    <td>
+                        <a href="${env.BUILD_URL}">
+                            Open Jenkins Build
+                        </a>
+                    </td>
+                </tr>
+
+            </table>
+
+            <br>
+
+            <h3>CI Pipeline Summary</h3>
+
+            <ul>
+                <li>Git checkout completed</li>
+                <li>NPM install completed</li>
+                <li>Trivy filesystem scan completed</li>
+                <li>SonarQube analysis passed</li>
+                <li>Docker image built successfully</li>
+                <li>Docker image pushed to AWS ECR</li>
+            </ul>
+
+            </div>
+
+            </body>
+            </html>
+            """
+
+            emailext(
+                subject: "SUCCESS: CI Pipeline - Build #${BUILD_NUMBER}",
+                body: body,
+                to: 'waktepranav00@gmail.com',
+                from: 'jenkins@example.com',
+                replyTo: 'jenkins@example.com',
+                mimeType: 'text/html',
+                attachmentsPattern: 'trivy-fs-report.html'
+            )
+        }
+    }
+
+    failure {
+        script {
+
+            def body = """
+            <html>
+            <body>
+
+            <div style="border: 4px solid red; padding: 15px; border-radius: 10px;">
+
+            <h2>CI Pipeline Failed - Build #${BUILD_NUMBER}</h2>
+
+            <div style="background-color: red; padding: 10px; border-radius: 5px;">
+                <h3 style="color: white;">
+                    Build Status: FAILED
+                </h3>
+            </div>
+
+            <br>
+
+            <table border="1" cellpadding="8" cellspacing="0" width="100%">
+
+                <tr>
+                    <th align="left">Pipeline Name</th>
+                    <td>${JOB_NAME}</td>
+                </tr>
+
+                <tr>
+                    <th align="left">Build Number</th>
+                    <td>${BUILD_NUMBER}</td>
+                </tr>
+
+                <tr>
+                    <th align="left">Docker Repository</th>
+                    <td>${params.ECR_REPO_NAME}</td>
+                </tr>
+
+                <tr>
+                    <th align="left">Build URL</th>
+                    <td>
+                        <a href="${env.BUILD_URL}">
+                            Open Jenkins Console Logs
+                        </a>
+                    </td>
+                </tr>
+
+            </table>
+
+            <br>
+
+           <tr>
+                <th align="left" valign="top" style="padding: 8px; white-space: nowrap;">Failed Stage:</th>
+                <td align="left" valign="top" style="padding: 8px; font-weight: bold; color: #d9534f;">${env.FAILED_STAGE}</td>
+            </tr>
+
+
+            <br>
+
+            <p>
+                Please review Jenkins console logs for detailed troubleshooting.
+            </p>
+
+            </div>
+
+            </body>
+            </html>
+            """
+
+            emailext(
+                subject: "FAILED: CI Pipeline - Build #${BUILD_NUMBER}",
+                body: body,
+                to: 'waktepranav00@gmail.com',
+                mimeType: 'text/html',
+                attachmentsPattern: env.FAILED_STAGE == 'Trivy Scanning' ? 'trivy-fs-report.html' : ''
+            )
+        }
+    }
+}
 }

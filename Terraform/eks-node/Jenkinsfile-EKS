@@ -5,7 +5,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('iam-access-key')
+        AWS_ACCESS_KEY_ID     = credentials('iam-access-key')  // iam-access-key/iam-secret-key is defined in the Jenksin credentials
         AWS_SECRET_ACCESS_KEY = credentials('iam-secret-key')
     }
 
