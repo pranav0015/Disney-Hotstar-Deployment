@@ -27,7 +27,7 @@ module "eks" {
       desired_size = 2
 
       instance_types = ["t2.medium"]
-      capacity_type  = "SPOT"
+      capacity_type  = "ON_DEMAND"
 
       tags = {
         ExtraTag = "disney-hotstar-node"
