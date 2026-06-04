@@ -26,13 +26,16 @@ pipeline{
 
                  git commit -m "Updated the image tag with the latest ${params.Image_Tag}" || echo "nothing to commit"
 
-                 git push -u origin main
+                 """
 
-                """
+                 withCredentials([gitUsernamePassword(credentialsId: 'github-token', gitToolName: 'Default')]) {
+                        sh """
+                            git push https://github.com/pranav0015/Disney-Hotstar-Deployment.git
+                        """
+                     }
+
+                }
             }
-
-        }
-
     }
 
     
