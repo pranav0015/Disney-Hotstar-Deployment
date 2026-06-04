@@ -30,10 +30,10 @@ pipeline{
             }
 
             stage("NPM Install"){
-                script{
-                    env.FAILED_STAGE = "NPM Install"
-                }
                 steps{
+                    script{ 
+                        env.FAILED_STAGE = "NPM Install"
+                    }
                     sh "npm install"
                 }
             }
@@ -46,19 +46,19 @@ pipeline{
          //   }
 
             stage("Trivy Scanning"){
-                script{
-                    env.FAILED_STAGE = "Trivy Scanning"
-                }
                 steps{
+                     script{
+                        env.FAILED_STAGE = "Trivy Scanning"
+                    }
                     sh "trivy fs --format table -o trivy-fs-report.html ."
                 }
             }
 
             stage("SonarQube Scanning"){
-                script{
-                    env.FAILED_STAGE = "SonarQube Scanning"
-                }
                 steps{
+                    script{
+                        env.FAILED_STAGE = "SonarQube Scanning"
+                    }
                     withSonarQubeEnv('sonar-server') {
                         sh '''
                         $SONAR_HOME/bin/sonar-scanner \
@@ -70,37 +70,37 @@ pipeline{
             }
 
             stage("SonarQube Quality Gate"){
-                script{
-                    env.FAILED_STAGE = "SonarQube Quality Gate"
-                }
                 steps{
+                     script{
+                        env.FAILED_STAGE = "SonarQube Quality Gate"
+                    }
                     waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
                 }
             }
 
             stage("Build Docker Image"){
-                script{
-                    env.FAILED_STAGE = "Build Docker Image"
-                }
                 steps{
+                    script{
+                        env.FAILED_STAGE = "Build Docker Image"
+                    }
                     sh "docker build -t ${params.ECR_REPO_NAME} ."
                 }
             }
 
             stage("Trivy Docker Image Scan"){
-                script{
-                    env.FAILED_STAGE = "Trivy Docker Image Scan"
-                }
                 steps{
+                     script{
+                        env.FAILED_STAGE = "Trivy Docker Image Scan"
+                    }
                     sh "trivy image --format table -o trivy-docker-image-scan-report.html ${params.ECR_REPO_NAME}"
                 }
             }
 
             stage("Create ECR Repo"){
-                script{
-                    env.FAILED_STAGE = "Create ECR Repo"
-                }
                 steps{
+                     script{
+                        env.FAILED_STAGE = "Create ECR Repo"
+                    }
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'ACCESS_KEY'), string(credentialsId: 'iam-secret-key', variable: 'SECRET_KEY')]) {
                         sh """
                             aws configure set aws_access_key_id $ACCESS_KEY
@@ -114,10 +114,10 @@ pipeline{
             }
 
             stage("Logging to ECR and tagging the image"){
-                script{
-                    env.FAILED_STAGE = "Logging to ECR and tagging the image"
-                }
                 steps{
+                     script{
+                        env.FAILED_STAGE = "Logging to ECR and tagging the image"
+                    }
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
                         sh """
                             aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com
@@ -128,10 +128,10 @@ pipeline{
                 }
             }
             stage("Push Docker Image to ECR"){
-                script{
-                    env.FAILED_STAGE = "Push Docker Image to ECR"
-                }
                 steps{
+                    script{
+                        env.FAILED_STAGE = "Push Docker Image to ECR"
+                    }
                     withCredentials([string(credentialsId: 'iam-access-key', variable: 'access-key'), string(credentialsId: 'iam-secret-key', variable: 'secret-key')]) {
                         sh """
                             docker push ${params.AWS_ACCOUNT_ID}.dkr.ecr.ap-south-1.amazonaws.com/${params.ECR_REPO_NAME}:$BUILD_NUMBER
