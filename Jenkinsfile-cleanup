@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+
+    environment {
+        KUBECTL = '/usr/local/bin/kubectl'
+    }
+
+    parameters {
+        string(name: 'EKS_Cluster_Name', defaultValue: 'disney-hotstar-cluster', description: 'Enter your EKS cluster name')
+    }
+
+    stages {
+        stage("Login to EKS"){
+                steps{
+                    script{
+                        withCredentials([string(credentialsId: 'iam-access-key', variable: 'AWS_ACCESS_KEY'), string(credentialsId: 'iam-secret-key', variable: 'AWS_SECRET_KEY')]) {
+                            sh "aws eks update-kubeconfig --region ap-south-1 --name ${params.EKS_Cluster_Name}"
+                        }
+                    }
+                }
+            }
+        
+        stage('Cleanup K8s Resources') {
+            steps {
+                script {
+                    // Step 1: Delete services and deployments
+                    sh 'kubectl delete svc kubernetes || true'
+                    sh 'kubectl delete deploy disney-hotstar-deploy || true'
+                    sh 'kubectl delete svc disney-hotstar-svc || true'
+
+                    // Step 2: Delete ArgoCD installation and namespace
+                    sh 'kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.11.3/manifests/install.yaml || true'
+                    sh 'kubectl delete namespace argocd || true'
+
+                    // Step 3: List and uninstall Helm releases in prometheus namespace
+                    sh 'helm list -n prometheus || true'
+                    sh 'helm uninstall kube-prometheus-stack -n prometheus || true'
+                    
+                    // Step 4: Delete prometheus namespace
+                    sh 'kubectl delete namespace prometheus || true'
+
+                    // Step 5: Remove Helm repositories
+                    sh 'helm repo remove stable || true'
+                    sh 'helm repo remove prometheus-community || true'
+                }
+            }
+        }
+		
+        stage('Delete ECR Repository') {
+            steps {
+                script {
+                    // Step 1: Delete ECR Repository
+                    sh '''
+                    aws ecr delete-repository --repository-name disney-hostart-ecr-repo --region ap-south-1 --force || true
+                    '''
+                }
+            }
+        }		
+		
+    }
+}
