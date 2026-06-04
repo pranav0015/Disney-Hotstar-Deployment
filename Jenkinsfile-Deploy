@@ -18,13 +18,13 @@ pipeline{
                 sh """
                  # replace the docker image tag with the latest build number and updated the deployment file
 
-                 sed -i "s|disney-hostart-ecr-repo:*|disney-hostart-ecr-repo:${params.Image_Tag}|g" "./k8s/deployment-service.yaml"
+                 sed -i "s|disney-hostart-ecr-repo:*|disney-hostart-ecr-repo:${params.Image_Tag}|g" "./K8S/deployment-service.yaml"
 
-                 cat "./k8s/deployment-service.yaml"
+                 cat "./K8S/deployment-service.yaml"
 
-                 git add "./k8s/deployment-service.yaml" 
+                 git add "./K8S/deployment-service.yaml" 
 
-                 git commit -m "Updated the image tag with teh latest ${params.Image_Tag}" || echo "nothing to commit"
+                 git commit -m "Updated the image tag with the latest ${params.Image_Tag}" || echo "nothing to commit"
 
                  git push -u origin main
 
